@@ -1,0 +1,52 @@
+{
+  "name": "staff_coffee",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier -w .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "i18next": "^26.0.5",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-hook-form": "^7.72.1",
+    "react-i18next": "^17.0.4",
+    "react-router-dom": "^7.14.1",
+    "recharts": "^3.8.1",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.5.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "postcss": "^8.5.10",
+    "prettier": "^3.8.3",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.8"
+  }
+}
