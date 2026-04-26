@@ -22,11 +22,21 @@ function normalizeOrigin(raw: string): string {
 }
 
 function getBackendOriginRaw(): string {
-  return (
-    import.meta.env.VITE_BACKEND_ORIGIN?.trim() ||
-    import.meta.env.VITE_API_URL?.trim() ||
-    ''
-  )
+  const fromEnv =
+    import.meta.env.VITE_BACKEND_ORIGIN?.trim() || import.meta.env.VITE_API_URL?.trim() || ''
+
+  if (fromEnv) return fromEnv
+
+  // DEV fallback: if staff app runs on localhost without env configured,
+  // default to the backend dev port so Socket.IO + REST can connect.
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8080'
+    }
+  }
+
+  return ''
 }
 
 /** Base URL cho axios: `/api` hoặc `http://host:8080/api`. */

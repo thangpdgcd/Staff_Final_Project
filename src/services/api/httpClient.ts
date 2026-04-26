@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getApiBaseUrl } from '@/config/backend'
+import { getApiBaseUrl } from '@/config/server'
 
 export const httpClient = axios.create({
   baseURL: getApiBaseUrl(),

@@ -15,7 +15,13 @@ const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 export const useToastStore = create<{
   items: AppToast[]
-  push: (t: Omit<AppToast, 'id' | 'createdAt'> & { id?: string; createdAt?: number }) => string
+  push: (
+    t: Omit<AppToast, 'id' | 'createdAt' | 'durationMs'> & {
+      id?: string
+      createdAt?: number
+      durationMs?: number
+    },
+  ) => string
   dismiss: (id: string) => void
   clear: () => void
 }>((set, get) => ({

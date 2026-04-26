@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
-import { getSocketUrl } from '@/config/backend'
+import { getSocketUrl } from '@/config/server'
 
 let socketSingleton: Socket | null = null
 let status: 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error' = 'idle'
