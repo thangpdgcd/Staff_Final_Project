@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Socket } from 'socket.io-client'
 import { connectSocket } from '@/services/socket/socketClient'
-import { staffApi } from '@/services/api/staffApi'
+import { staffApi } from '@/api/staffApi'
 import { unwrapApiData, normalizeList } from '@/utils/apiResponse'
 import { useAuthStore } from '@/store/authStore'
 import { pickMyUserId } from '@/hooks/useChat'

@@ -1,7 +1,7 @@
 // @ts-nocheck — voucher rows from API
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { staffApi } from '@/services/api/staffApi'
+import { staffApi } from '@/api/staffApi'
 import { normalizeList, unwrapApiData } from '@/utils/apiResponse'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
