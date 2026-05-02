@@ -5,7 +5,7 @@ import { Send, Image as ImageIcon, Search, Phone, Video, Info, MessageSquare } f
 import { useTranslation } from 'react-i18next'
 import { useChat, pickMyUserId } from '@/hooks/useChat'
 import { useAuthStore } from '@/store/authStore'
-import { staffApi } from '@/services/api/staffApi'
+import { staffApi } from '@/api/staffApi'
 import { unwrapApiData, normalizeList } from '@/utils/apiResponse'
 
 const peerUserIdFromConversation = (conv, staffId) => {

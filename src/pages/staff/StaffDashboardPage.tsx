@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Users, Ticket, MessageSquare, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { staffApi } from '@/services/api/staffApi'
+import { staffApi } from '@/api/staffApi'
 
 
 const AnimatedCounter = ({ value, duration = 1.5 }) => {

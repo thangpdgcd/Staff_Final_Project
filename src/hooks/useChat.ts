@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { connectSocket, chatEvents } from '@/services/socket/socketClient'
 import { useAuthStore } from '@/store/authStore'
-import { staffApi } from '@/services/api/staffApi'
+import { staffApi } from '@/api/staffApi'
 import { normalizeList, unwrapApiData } from '@/utils/apiResponse'
 import { normalizeRoleId, ROLE_IDS } from '@/constants/roles'
 
