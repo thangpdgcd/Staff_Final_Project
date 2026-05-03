@@ -1,6 +1,20 @@
 import { httpClient } from '@/api/httpClient'
 
 export const staffApi = {
+  /** Danh sách user (staff/admin) — dùng để tìm khách theo tên/email khi tạo voucher */
+  listUsers: async () => {
+    const res = await httpClient.get('/users', { params: { lite: 'true', role: '1', onlyNew: 'true', limit: 500 } })
+    return res.data
+  },
+
+  /** Tất cả khách (customer) có email trong DB — dùng trang gửi email staff (không giới hạn "user mới") */
+  listCustomersWithEmail: async (limit = 2000) => {
+    const res = await httpClient.get('/users', {
+      params: { lite: 'true', role: '1', limit: String(limit) },
+    })
+    return res.data
+  },
+
   getUserById: async (id: string | number) => {
     const res = await httpClient.get(`/users/${id}`)
     return res.data
@@ -23,7 +37,7 @@ export const staffApi = {
     page = 1,
     pageSize = 20,
   }: { q?: string; userId?: string; page?: number; pageSize?: number } = {}) => {
-    const res = await httpClient.get('/staff/vouchers', { params: { q, userId, page, pageSize } })
+    const res = await httpClient.get('/staff/vouchers', { params: { q, userId, page, pageSize, lite: 'true', includePromo: 'true' } })
     return res.data
   },
   listPromoVouchers: async ({ q = '', page = 1, pageSize = 20 }: { q?: string; page?: number; pageSize?: number } = {}) => {

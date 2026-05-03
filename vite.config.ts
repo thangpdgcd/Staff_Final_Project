@@ -48,6 +48,12 @@ export default defineConfig(({ mode }) => {
       port: 5175,
       strictPort: true,
       proxy: {
+        /** Avoid ad-block / third‑party blocking of api.mymemory.translated.net in dev */
+        '/mymemory-proxy': {
+          target: 'https://api.mymemory.translated.net',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/mymemory-proxy/, '') || '/',
+        },
         '/api': {
           target,
           changeOrigin: true,
