@@ -90,6 +90,7 @@ export const StaffVouchersPage = () => {
   const [createForm, setCreateForm] = useState({ type: 'percent', value: '10' })
   /** userId dạng string cho <select> — lấy từ DB (/users), không cần nhập tay */
   const [createCustomerId, setCreateCustomerId] = useState('')
+  const [createCustomerQuery, setCreateCustomerQuery] = useState('')
   const [createUsers, setCreateUsers] = useState([])
   const [createUsersLoading, setCreateUsersLoading] = useState(false)
   const [editForm, setEditForm] = useState({ type: '', value: '', expiresAt: '' })
@@ -127,6 +128,7 @@ export const StaffVouchersPage = () => {
   const openCreate = () => {
     setCreateForm({ type: 'percent', value: '10' })
     setCreateCustomerId('')
+    setCreateCustomerQuery('')
     setCreateOpen(true)
   }
 
@@ -135,7 +137,7 @@ export const StaffVouchersPage = () => {
     let cancelled = false
     setCreateUsersLoading(true)
     staffApi
-      .listUsers()
+      .listCustomers(5000)
       .then((body) => {
         if (cancelled) return
         const data = unwrapApiData(body)
@@ -175,6 +177,12 @@ export const StaffVouchersPage = () => {
     rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'vi', { sensitivity: 'base' }))
     return rows
   }, [createUsers])
+
+  const filteredCustomerOptions = useMemo(() => {
+    const q = String(createCustomerQuery ?? '').trim().toLowerCase()
+    if (!q) return customerOptions
+    return customerOptions.filter((x) => String(x.label ?? '').toLowerCase().includes(q))
+  }, [customerOptions, createCustomerQuery])
 
   const openEdit = (v) => {
     if (String(v?.id ?? '').startsWith('promo:') || v?.source === 'promo') {
@@ -541,19 +549,35 @@ export const StaffVouchersPage = () => {
             ) : customerOptions.length === 0 ? (
               <div className="mt-2 text-sm text-zinc-500">{t('staff.vouchersPage.noCustomers')}</div>
             ) : (
-              <select
-                className={cn(selectFieldClass, 'mt-2')}
-                value={createCustomerId}
-                onChange={(e) => setCreateCustomerId(e.target.value)}
-                aria-label={t('staff.vouchersPage.customerAria')}
-              >
-                <option value="">{t('staff.vouchersPage.customerPlaceholder')}</option>
-                {customerOptions.map((opt) => (
-                  <option key={opt.uid} value={String(opt.uid)}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-2 space-y-2">
+                <Input
+                  value={createCustomerQuery}
+                  onChange={(e) => setCreateCustomerQuery(e.target.value)}
+                  placeholder="Tìm khách hàng theo tên hoặc email…"
+                />
+                <select
+                  className={cn(selectFieldClass)}
+                  value={createCustomerId}
+                  onChange={(e) => setCreateCustomerId(e.target.value)}
+                  aria-label={t('staff.vouchersPage.customerAria')}
+                >
+                  <option value="">{t('staff.vouchersPage.customerPlaceholder')}</option>
+                  {filteredCustomerOptions.map((opt) => (
+                    <option key={opt.uid} value={String(opt.uid)}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {filteredCustomerOptions.length === 0 ? (
+                  <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Không tìm thấy khách hàng phù hợp.
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Hiển thị {filteredCustomerOptions.length}/{customerOptions.length} khách hàng.
+                  </div>
+                )}
+              </div>
             )}
             {!createUsersLoading && customerOptions.length > 0 ? (
               <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
