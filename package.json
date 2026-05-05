@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docs:pdf": "node scripts/html-to-pdf.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
