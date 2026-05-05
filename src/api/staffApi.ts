@@ -7,6 +7,12 @@ export const staffApi = {
     return res.data
   },
 
+  /** Tất cả khách hàng (customer) — dùng dropdown tạo voucher (không lọc onlyNew). */
+  listCustomers: async (limit = 5000) => {
+    const res = await httpClient.get('/users', { params: { lite: 'true', role: '1', limit: String(limit) } })
+    return res.data
+  },
+
   /** Tất cả khách (customer) có email trong DB — dùng trang gửi email staff (không giới hạn "user mới") */
   listCustomersWithEmail: async (limit = 2000) => {
     const res = await httpClient.get('/users', {
