@@ -216,8 +216,8 @@ export const StaffVouchersPage = () => {
       if (!verdict.ok) {
         toast.error(
           verdict.reason === 'has_orders'
-            ? 'Staff chỉ được tạo voucher cho người dùng mới (chưa có đơn hàng).'
-            : 'Staff chỉ được tạo voucher cho người dùng mới.',
+            ? t('staff.vouchersPage.errOnlyNewUserHasOrders')
+            : t('staff.vouchersPage.errOnlyNewUser'),
         )
         return false
       }
