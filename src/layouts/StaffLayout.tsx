@@ -234,11 +234,14 @@ export const StaffLayout = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="button"
-                onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
-                className="text-xs font-bold px-3 py-2 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                onClick={() => i18n.changeLanguage(i18n.language.startsWith('vi') ? 'en' : 'vi')}
+                aria-label={i18n.language.startsWith('vi') ? t('common.langSwitchToEn') : t('common.langSwitchToVi')}
+                title={i18n.language.startsWith('vi') ? t('common.langSwitchToEn') : t('common.langSwitchToVi')}
+                className="text-xs font-bold px-3 py-2 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
               >
-                {i18n.language === 'vi' ? 'EN' : 'VI'}
+                {i18n.language.startsWith('vi') ? 'EN' : 'VI'}
               </MotionButton>
+
               <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

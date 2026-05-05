@@ -16,12 +16,12 @@ const trimEndSlash = (s: string) => String(s ?? '').trim().replace(/\/+$/, '')
 
 const stripApiSuffix = (url: string) => url.replace(/\/api\/?$/i, '')
 
-function normalizeOrigin(raw: string): string {
+const normalizeOrigin = (raw: string): string => {
   if (!raw) return ''
   return trimEndSlash(stripApiSuffix(raw))
 }
 
-function getBackendOriginRaw(): string {
+const getBackendOriginRaw = (): string => {
   const fromEnv =
     import.meta.env.VITE_BACKEND_ORIGIN?.trim() || import.meta.env.VITE_API_URL?.trim() || ''
 
@@ -40,13 +40,13 @@ function getBackendOriginRaw(): string {
 }
 
 /** Base URL cho axios: `/api` hoặc `http://host:8080/api`. */
-export function getApiBaseUrl(): string {
+export const getApiBaseUrl = (): string => {
   const o = normalizeOrigin(getBackendOriginRaw())
   return o ? `${o}/api` : '/api'
 }
 
 /** Origin cho `io()` — ưu tiên VITE_SOCKET_URL, rồi gốc BE (VITE_BACKEND_ORIGIN / VITE_API_URL), rồi same-origin. */
-export function getSocketUrl(): string {
+export const getSocketUrl = (): string => {
   const sock = normalizeOrigin(import.meta.env.VITE_SOCKET_URL?.trim() || '')
   if (sock) return sock
   const be = normalizeOrigin(getBackendOriginRaw())
