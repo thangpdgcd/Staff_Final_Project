@@ -1,19 +1,19 @@
 import { httpClient } from '@/api/httpClient'
 
 export const staffApi = {
-  /** Danh sách user (staff/admin) — dùng để tìm khách theo tên/email khi tạo voucher */
+  /** List users (staff/admin) — used to search customers by name/email when creating vouchers */
   listUsers: async () => {
     const res = await httpClient.get('/users', { params: { lite: 'true', role: '1', onlyNew: 'true', limit: 500 } })
     return res.data
   },
 
-  /** Tất cả khách hàng (customer) — dùng dropdown tạo voucher (không lọc onlyNew). */
+  /** All customers — used for the voucher creation dropdown (does not filter onlyNew). */
   listCustomers: async (limit = 5000) => {
     const res = await httpClient.get('/users', { params: { lite: 'true', role: '1', limit: String(limit) } })
     return res.data
   },
 
-  /** Tất cả khách (customer) có email trong DB — dùng trang gửi email staff (không giới hạn "user mới") */
+  /** All customers with email in DB — used by staff email page (not limited to "new users") */
   listCustomersWithEmail: async (limit = 2000) => {
     const res = await httpClient.get('/users', {
       params: { lite: 'true', role: '1', limit: String(limit) },

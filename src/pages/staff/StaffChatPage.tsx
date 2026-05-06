@@ -71,8 +71,56 @@ export const StaffChatPage = () => {
   const messagesEndRef = useRef(null)
   const convInFlightRef = useRef(false)
   const didLoadOnceRef = useRef(false)
+  const userFetchInFlightRef = useRef(new Set())
 
   const [voucherCode, setVoucherCode] = useState('')
+
+  const cacheUserFromPayload = useCallback((uid: number, payload: any) => {
+    const p = payload?.user ?? payload?.profile ?? payload
+    const plain = p?.dataValues ?? p
+    const name = (
+      plain?.name ??
+      plain?.fullName ??
+      plain?.username ??
+      plain?.userName ??
+      plain?.user_name ??
+      plain?.displayName ??
+      ''
+    )
+      .toString()
+      .trim()
+    const email = (plain?.email ?? plain?.mail ?? plain?.userEmail ?? '').toString().trim()
+    const roleRaw = plain?.roleID ?? plain?.roleId ?? plain?.role ?? null
+    const roleId = roleRaw == null || roleRaw === '' ? null : Number(roleRaw)
+
+    setUserCache((prev) => ({
+      ...prev,
+      [String(uid)]: {
+        name: name || prev?.[String(uid)]?.name || '',
+        email: email || prev?.[String(uid)]?.email || '',
+        roleId: Number.isFinite(roleId) ? roleId : prev?.[String(uid)]?.roleId ?? null,
+        ts: Date.now(),
+      },
+    }))
+  }, [])
+
+  const ensureUserCached = useCallback(
+    async (uid: number) => {
+      if (!Number.isFinite(uid) || uid <= 0) return
+      if (userFetchInFlightRef.current.has(uid)) return
+      userFetchInFlightRef.current.add(uid)
+      try {
+        const body = await staffApi.getUserById(uid)
+        const payload = unwrapApiData(body)
+        cacheUserFromPayload(uid, payload)
+      } catch {
+        // ignore: keep placeholder label
+      } finally {
+        userFetchInFlightRef.current.delete(uid)
+      }
+    },
+    [cacheUserFromPayload],
+  )
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -112,45 +160,52 @@ export const StaffChatPage = () => {
       .then((body) => {
         if (cancelled) return
         const payload = unwrapApiData(body)
-        const p = payload?.user ?? payload?.profile ?? payload
-        const plain = p?.dataValues ?? p
-        const name = (
-          plain?.name ??
-          plain?.fullName ??
-          plain?.username ??
-          plain?.userName ??
-          plain?.user_name ??
-          plain?.displayName ??
-          ''
-        )
-          .toString()
-          .trim()
-        const email = (plain?.email ?? plain?.mail ?? plain?.userEmail ?? '').toString().trim()
-        const roleRaw = plain?.roleID ?? plain?.roleId ?? plain?.role ?? null
-        const roleId = roleRaw == null || roleRaw === '' ? null : Number(roleRaw)
-        setUserCache((prev) => ({
-          ...prev,
-          [String(uid)]: {
-            name: name || prev?.[String(uid)]?.name || '',
-            email: email || prev?.[String(uid)]?.email || '',
-            roleId: Number.isFinite(roleId) ? roleId : prev?.[String(uid)]?.roleId ?? null,
-            ts: Date.now(),
-          },
-        }))
+        cacheUserFromPayload(uid, payload)
       })
       .catch(() => {})
 
     return () => {
       cancelled = true
     }
-  }, [selectedUserId])
+  }, [cacheUserFromPayload, selectedUserId])
+
+  useEffect(() => {
+    // Prefetch peer profiles so the sidebar shows names without requiring a click.
+    // Backend conversations may omit participant names → fallback label becomes "User".
+    const peers = new Set<number>()
+    for (const conv of Array.isArray(convList) ? convList : []) {
+      const peerId = peerUserIdFromConversation(conv, myUserId)
+      if (peerId != null) peers.add(Number(peerId))
+    }
+    const ids = Array.from(peers).filter((id) => Number.isFinite(id) && id > 0)
+    const missing = ids.filter((id) => !userCache?.[String(id)]?.name && !userFetchInFlightRef.current.has(id))
+    if (missing.length === 0) return
+
+    let cancelled = false
+    const run = async () => {
+      // Small concurrency limit to avoid spamming backend.
+      const CONCURRENCY = 4
+      let i = 0
+      const workers = new Array(CONCURRENCY).fill(0).map(async () => {
+        while (!cancelled && i < missing.length) {
+          const uid = missing[i++]
+          await ensureUserCached(uid)
+        }
+      })
+      await Promise.allSettled(workers)
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [convList, ensureUserCached, myUserId, userCache])
 
   useEffect(() => {
     let mounted = true
     // Initial load
     loadConversations({ silent: false })
 
-    // Khi user bên customer đổi tên, danh sách conversations cần fetch lại để lấy `participants.name` mới.
+    // When a customer updates their name, refresh the conversation list to get the new `participants.name`.
     const refreshIfVisible = () => {
       if (!mounted) return
       if (document.visibilityState !== 'visible') return
@@ -210,7 +265,7 @@ export const StaffChatPage = () => {
   }
 
   const convRows = useMemo(() => {
-    // Normalize: backend đôi khi trả nhiều conversation cho cùng 1 peer → UI bị "chọn 2".
+    // Normalize: backend may return multiple conversations for the same peer → UI can look duplicated.
     const byPeer = new Map()
     for (const conv of Array.isArray(convList) ? convList : []) {
       const peerId = peerUserIdFromConversation(conv, myUserId)

@@ -26,7 +26,7 @@ const userIdFromRow = (u) => {
   return Number.isFinite(n) ? n : null
 }
 
-/** Chỉ gợi ý khách hàng; staff/admin không tạo voucher cho chính role nội bộ */
+/** Only suggest customers; staff/admin should not create vouchers for internal roles. */
 const isCustomerRole = (u) => {
   const r = String(plainUser(u)?.roleID ?? plainUser(u)?.roleId ?? '').trim().toLowerCase()
   if (!r) return true
@@ -52,9 +52,9 @@ const pickOrdersCount = (u) => {
 }
 
 /**
- * Staff chỉ được tạo voucher cho "người dùng mới".
- * FE cố gắng xác định dựa trên profile trả về từ BE (createdAt / ordersCount...).
- * Nếu không đủ dữ liệu để kết luận, FE cho phép và backend sẽ là nơi enforce cuối cùng.
+ * Staff can only create vouchers for "new users".
+ * FE infers it from the profile payload returned by BE (createdAt / ordersCount...).
+ * If data is insufficient, FE allows the action and the backend is the final gatekeeper.
  */
 const isNewUserHeuristic = (user) => {
   const createdAt = pickCreatedAt(user)
@@ -88,7 +88,7 @@ export const StaffVouchersPage = () => {
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState(null)
   const [createForm, setCreateForm] = useState({ type: 'percent', value: '10' })
-  /** userId dạng string cho <select> — lấy từ DB (/users), không cần nhập tay */
+  /** userId as string for <select> — loaded from DB (/users), no manual typing needed */
   const [createCustomerId, setCreateCustomerId] = useState('')
   const [createCustomerQuery, setCreateCustomerQuery] = useState('')
   const [createUsers, setCreateUsers] = useState([])
@@ -160,7 +160,7 @@ export const StaffVouchersPage = () => {
     }
   }, [createOpen])
 
-  /** Khách hàng từ DB, sắp xếp theo tên — hiển thị trong <select> */
+  /** Customers from DB, sorted by name — displayed in <select> */
   const customerOptions = useMemo(() => {
     const rows = createUsers
       .filter(isCustomerRole)
@@ -168,7 +168,7 @@ export const StaffVouchersPage = () => {
         const p = plainUser(row)
         const uid = userIdFromRow(row)
         if (uid == null) return null
-        const name = String(p?.name ?? '').trim() || `Khách #${uid}`
+        const name = String(p?.name ?? '').trim() || `Customer #${uid}`
         const email = String(p?.email ?? '').trim()
         const label = email ? `${name} — ${email}` : name
         return { uid, name, email, label }
@@ -237,7 +237,8 @@ export const StaffVouchersPage = () => {
 
     if (!createCustomerId || !Number.isFinite(userId) || userId <= 0)
       return toast.error(t('staff.vouchersPage.errPickCustomer'))
-    if (!type || (type !== 'percent' && type !== 'fixed')) return toast.error('Chọn loại giảm giá (percent hoặc fixed).')
+    if (!type || (type !== 'percent' && type !== 'fixed'))
+      return toast.error('Choose a discount type (percent or fixed).')
     if (!valueRaw || !Number.isFinite(value) || value <= 0) return toast.error(t('staff.vouchersPage.errInvalidValue'))
 
     setBusy(true)
@@ -553,7 +554,7 @@ export const StaffVouchersPage = () => {
                 <Input
                   value={createCustomerQuery}
                   onChange={(e) => setCreateCustomerQuery(e.target.value)}
-                  placeholder="Tìm khách hàng theo tên hoặc email…"
+                  placeholder="Search customers by name or email…"
                 />
                 <select
                   className={cn(selectFieldClass)}
@@ -570,11 +571,11 @@ export const StaffVouchersPage = () => {
                 </select>
                 {filteredCustomerOptions.length === 0 ? (
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Không tìm thấy khách hàng phù hợp.
+                    No matching customers found.
                   </div>
                 ) : (
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Hiển thị {filteredCustomerOptions.length}/{customerOptions.length} khách hàng.
+                    Showing {filteredCustomerOptions.length}/{customerOptions.length} customers.
                   </div>
                 )}
               </div>
@@ -623,7 +624,7 @@ export const StaffVouchersPage = () => {
       <Modal
         open={editOpen}
         onClose={() => (busy ? null : setEditOpen(false))}
-        title="Cập nhật voucher"
+        title="Update voucher"
         description={selected?.code ? `Code: ${selected.code}` : `ID: ${selected?.id ?? ''}`}
       >
         <div className="space-y-4">
@@ -655,7 +656,7 @@ export const StaffVouchersPage = () => {
               type="datetime-local"
             />
             <div className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-              Để trống để xoá hạn sử dụng (set null).
+              Leave empty to clear expiration (set null).
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
@@ -664,7 +665,7 @@ export const StaffVouchersPage = () => {
             </Button>
             <Button type="button" onClick={onEdit} disabled={busy}>
               {busy ? <Spinner size="sm" /> : <Pencil size={16} />}
-              Lưu
+              Save
             </Button>
           </div>
         </div>
@@ -673,12 +674,12 @@ export const StaffVouchersPage = () => {
       <Modal
         open={deleteOpen}
         onClose={() => (busy ? null : setDeleteOpen(false))}
-        title="Xoá voucher"
-        description="Hành động này không thể hoàn tác."
+        title="Delete voucher"
+        description="This action cannot be undone."
       >
         <div className="space-y-4">
           <div className="rounded-2xl border border-red-200/70 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-900 dark:text-red-100">
-            Bạn chắc chắn muốn xoá voucher{' '}
+            Are you sure you want to delete voucher{' '}
             <span className="font-black">{selected?.code ? selected.code : `#${selected?.id ?? ''}`}</span>?
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
@@ -687,7 +688,7 @@ export const StaffVouchersPage = () => {
             </Button>
             <Button type="button" variant="danger" onClick={onDelete} disabled={busy}>
               {busy ? <Spinner size="sm" /> : <Trash2 size={16} />}
-              Xoá
+              Delete
             </Button>
           </div>
         </div>
