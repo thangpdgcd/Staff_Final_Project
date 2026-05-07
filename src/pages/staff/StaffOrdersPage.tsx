@@ -38,7 +38,16 @@ export const StaffOrdersPage = () => {
     try {
       const raw = localStorage.getItem(HISTORY_KEY)
       const parsed = raw ? JSON.parse(raw) : []
-      setHistory(Array.isArray(parsed) ? parsed : [])
+      const normalized = Array.isArray(parsed)
+        ? parsed.map((h: any) => {
+            const ts = Number(h?.ts)
+            return {
+              ...h,
+              ts: Number.isFinite(ts) ? ts : 0,
+            }
+          })
+        : []
+      setHistory(normalized)
     } catch {
       setHistory([])
     }
@@ -390,48 +399,58 @@ export const StaffOrdersPage = () => {
         <CardContent className="p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-black text-zinc-900 dark:text-white">Lịch sử thao tác</div>
-              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Các đơn bạn đã xác nhận / xử lý hoàn tiền gần đây.</div>
+              <div className="text-sm font-black text-zinc-900 dark:text-white">Activity history</div>
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Recent orders you approved / refund actions you processed.
+              </div>
             </div>
             <Button
               type="button"
               variant="secondary"
               onClick={() => {
                 setHistory([])
-                try { localStorage.removeItem(HISTORY_KEY) } catch {}
-                toast.info('Đã xoá lịch sử')
+                try {
+                  localStorage.removeItem(HISTORY_KEY)
+                } catch {
+                  // ignore storage errors (private mode / quota / blocked)
+                }
+                toast.info('History cleared')
               }}
             >
-              Xoá
+              Clear
             </Button>
           </div>
 
           {history.length === 0 ? (
-            <div className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">Chưa có thao tác nào.</div>
+            <div className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">No activity yet.</div>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-zinc-500">
                   <tr className="border-b border-zinc-200/60 dark:border-zinc-800">
-                    <th className="py-2 pr-4">Thời gian</th>
-                    <th className="py-2 pr-4">Đơn</th>
-                    <th className="py-2 pr-4">Hành động</th>
-                    <th className="py-2">Chi tiết</th>
+                    <th className="py-2 pr-4">Time</th>
+                    <th className="py-2 pr-4">Order</th>
+                    <th className="py-2 pr-4">Action</th>
+                    <th className="py-2">Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.slice(0, 12).map((h) => (
                     <tr key={h.id} className="border-b border-zinc-100 dark:border-zinc-800/60">
                       <td className="py-2 pr-4 text-xs text-zinc-500 dark:text-zinc-400">
-                        {new Date(Number(h.ts || Date.now())).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
+                        {h.ts
+                          ? new Date(Number(h.ts)).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+                          : '—'}
                       </td>
                       <td className="py-2 pr-4 font-mono">#{h.orderId}</td>
                       <td className="py-2 pr-4 font-semibold">
-                        {h.action === 'refund' ? 'Hoàn tiền' : 'Cập nhật trạng thái'}
+                        {h.action === 'refund' ? 'Refund' : 'Status update'}
                       </td>
                       <td className="py-2 text-xs text-zinc-600 dark:text-zinc-300">
                         {h.action === 'refund'
-                          ? h.approved ? 'Duyệt hoàn' : 'Từ chối hoàn'
+                          ? h.approved
+                            ? 'Refund approved'
+                            : 'Refund rejected'
                           : `→ ${String(h.nextStatus ?? '').toUpperCase()}`}
                       </td>
                     </tr>

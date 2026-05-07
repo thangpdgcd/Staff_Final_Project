@@ -3,7 +3,8 @@
  * Used on Staff Email page when the user toggles interface language.
  */
 
-const VIET_CHARS_RE = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/
+const VIET_CHARS_RE =
+  /[\u00E0\u00E1\u1EA3\u00E3\u1EA1\u0103\u1EB1\u1EAF\u1EB3\u1EB5\u1EB7\u00E2\u1EA7\u1EA5\u1EA9\u1EAB\u1EAD\u00E8\u00E9\u1EBB\u1EBD\u1EB9\u00EA\u1EC1\u1EBF\u1EC3\u1EC5\u1EC7\u00EC\u00ED\u1EC9\u0129\u1ECB\u00F2\u00F3\u1ECF\u00F5\u1ECD\u00F4\u1ED3\u1ED1\u1ED5\u1ED7\u1ED9\u01A1\u1EDD\u1EDB\u1EDF\u1EE1\u1EE3\u00F9\u00FA\u1EE7\u0169\u1EE5\u01B0\u1EEB\u1EE9\u1EED\u1EEF\u1EF1\u1EF3\u00FD\u1EF7\u1EF9\u1EF5\u0111\u0110]/
 
 const MAX_Q = 450
 
@@ -56,15 +57,10 @@ export async function translateViEn(
       /** Vite proxies `/mymemory-proxy/get` → MyMemory `/get` (same-origin, fewer blockers). */
       url = `${window.location.origin}/mymemory-proxy/get?${params}`
     } else {
-      /** Vercel `api/staff-app-translate-proxy.js` forwards query → MyMemory. */
-      url = `${window.location.origin}/api/staff-app-translate-proxy?${params}`
+      /** Production: call MyMemory directly (no serverless `/api/*` proxy in this repo). */
+      url = `https://api.mymemory.translated.net/get?${params}`
     }
     let res = await fetch(url, { signal, credentials: 'omit' })
-    /** `vite preview` / static hosts have no `/api/` proxy → retry upstream */
-    if (res.status === 404 && url.includes('/api/staff-app-translate-proxy')) {
-      const fallback = `https://api.mymemory.translated.net/get?${params}`
-      res = await fetch(fallback, { signal, credentials: 'omit' })
-    }
     if (!res.ok) throw new Error(`translate_http_${res.status}`)
     const data = (await res.json()) as MyMemoryJson
     const st = data.responseStatus

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { NotificationItem } from '@/components/notifications/NotificationItem'
 import type { AppNotification } from '@/hooks/useNotifications'
@@ -18,14 +19,16 @@ export const NotificationDropdown = ({
   onMarkAllRead: () => void
 }) => {
   const { t } = useTranslation()
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <>
           <motion.button
             type="button"
             aria-label={t('notifications.ariaClose')}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-9998 bg-black/10 dark:bg-black/30"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -36,7 +39,7 @@ export const NotificationDropdown = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-            className="absolute right-0 top-12 z-50 w-[360px] max-w-[calc(100vw-2rem)] rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl overflow-hidden"
+            className="fixed right-4 top-20 z-9999 w-[360px] max-w-[calc(100vw-2rem)] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-xl overflow-hidden"
           >
             <div className="px-5 py-4 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between">
               <div className="text-sm font-black tracking-tight">{t('notifications.title')}</div>
@@ -44,14 +47,14 @@ export const NotificationDropdown = ({
                 <button
                   type="button"
                   onClick={onMarkAllRead}
-                  className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                  className="cursor-pointer text-xs font-bold px-2.5 py-1.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
                 >
                   {t('notifications.markAllRead')}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                  className="cursor-pointer text-xs font-bold px-2.5 py-1.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
                 >
                   {t('common.close')}
                 </button>
@@ -74,7 +77,8 @@ export const NotificationDropdown = ({
           </motion.div>
         </>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
 

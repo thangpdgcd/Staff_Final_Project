@@ -8,50 +8,125 @@ import { useAuthStore } from '@/store/authStore'
 import { staffApi } from '@/api/staffApi'
 import { unwrapApiData, normalizeList } from '@/utils/apiResponse'
 
+const pickParticipantUserId = (p: any): number | null => {
+  if (!p || typeof p !== 'object') return null
+  const plain = p?.dataValues ?? p
+  const idRaw =
+    plain?.userId ??
+    plain?.user_ID ??
+    plain?.user_id ??
+    plain?.id ??
+    plain?.User?.id ??
+    plain?.User?.userId ??
+    plain?.User?.user_ID ??
+    plain?.user?.id ??
+    plain?.user?.userId ??
+    plain?.user?.user_ID ??
+    null
+  if (idRaw == null || idRaw === '') return null
+  const n = Number(idRaw)
+  return Number.isFinite(n) ? n : null
+}
+
+const pickParticipantProfile = (p: any): any => {
+  const plain = p?.dataValues ?? p
+  return (
+    plain?.user ??
+    plain?.User ??
+    plain?.profile ??
+    plain?.customer ??
+    plain?.sender ??
+    plain ??
+    null
+  )
+}
+
+const pickDisplayName = (plain: any): string => {
+  if (!plain || typeof plain !== 'object') return ''
+  const p = plain?.dataValues ?? plain
+  const first =
+    p?.firstName ??
+    p?.first_name ??
+    p?.firstname ??
+    p?.given_name ??
+    ''
+  const last =
+    p?.lastName ??
+    p?.last_name ??
+    p?.lastname ??
+    p?.family_name ??
+    ''
+  const joined = `${String(first ?? '').trim()} ${String(last ?? '').trim()}`.trim()
+  const raw =
+    p?.name ??
+    p?.fullName ??
+    p?.full_name ??
+    p?.fullname ??
+    p?.username ??
+    p?.userName ??
+    p?.user_name ??
+    p?.displayName ??
+    (joined || '') ??
+    ''
+  return String(raw ?? '').trim()
+}
+
+const pickEmail = (plain: any): string => {
+  if (!plain || typeof plain !== 'object') return ''
+  const p = plain?.dataValues ?? plain
+  const raw = p?.email ?? p?.mail ?? p?.userEmail ?? p?.user_email ?? ''
+  return String(raw ?? '').trim()
+}
+
 const peerUserIdFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
-  return peer?.userId != null ? Number(peer.userId) : null
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
+  const peerId = peer ? pickParticipantUserId(peer) : null
+  return peerId != null ? Number(peerId) : null
 }
 
 const peerLabelFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
-  const raw =
-    plain.name ??
-    plain.fullName ??
-    plain.username ??
-    plain.userName ??
-    plain.user_name ??
-    plain.displayName ??
-    plain.email ??
-    plain.phone ??
-    null
-  const label = raw != null ? String(raw).trim() : ''
-  return label || null
+  const profile = pickParticipantProfile(peer)
+  const label = pickDisplayName(profile)
+  if (label) return label
+  const email = pickEmail(profile)
+  return email || null
 }
 
 const peerEmailFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
-  const raw = plain.email ?? plain.mail ?? plain.userEmail ?? null
-  const email = raw != null ? String(raw).trim() : ''
+  const profile = pickParticipantProfile(peer)
+  const email = pickEmail(profile)
   return email || null
 }
 
 const peerRoleIdFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
+  const profile = pickParticipantProfile(peer)
+  const plain = profile?.dataValues ?? profile
   const raw = plain.roleID ?? plain.roleId ?? plain.role ?? null
   if (raw == null || raw === '') return null
   const n = Number(raw)
@@ -71,8 +146,54 @@ export const StaffChatPage = () => {
   const messagesEndRef = useRef(null)
   const convInFlightRef = useRef(false)
   const didLoadOnceRef = useRef(false)
+  const userFetchInFlightRef = useRef(new Set())
 
   const [voucherCode, setVoucherCode] = useState('')
+
+  const cacheUserFromPayload = useCallback((uid: number, payload: any) => {
+    const root = payload?.dataValues ?? payload
+    const p =
+      root?.user ??
+      root?.User ??
+      root?.profile ??
+      root?.customer ??
+      root?.sender ??
+      root?.from ??
+      root
+    const plain = p?.dataValues ?? p
+    const name = pickDisplayName(plain)
+    const email = pickEmail(plain)
+    const roleRaw = plain?.roleID ?? plain?.roleId ?? plain?.role ?? null
+    const roleId = roleRaw == null || roleRaw === '' ? null : Number(roleRaw)
+
+    setUserCache((prev) => ({
+      ...prev,
+      [String(uid)]: {
+        name: name || prev?.[String(uid)]?.name || '',
+        email: email || prev?.[String(uid)]?.email || '',
+        roleId: Number.isFinite(roleId) ? roleId : prev?.[String(uid)]?.roleId ?? null,
+        ts: Date.now(),
+      },
+    }))
+  }, [])
+
+  const ensureUserCached = useCallback(
+    async (uid: number) => {
+      if (!Number.isFinite(uid) || uid <= 0) return
+      if (userFetchInFlightRef.current.has(uid)) return
+      userFetchInFlightRef.current.add(uid)
+      try {
+        const body = await staffApi.getUserById(uid)
+        const payload = unwrapApiData(body)
+        cacheUserFromPayload(uid, payload)
+      } catch {
+        // ignore: keep placeholder label
+      } finally {
+        userFetchInFlightRef.current.delete(uid)
+      }
+    },
+    [cacheUserFromPayload],
+  )
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,6 +202,18 @@ export const StaffChatPage = () => {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isTyping])
+
+  useEffect(() => {
+    // When messages arrive via socket/API, prefer embedded sender profile data to populate labels.
+    // This makes names render even if `/users/:id` is blocked on production (CORS/401).
+    for (const m of Array.isArray(messages) ? messages : []) {
+      const uid = Number(m?.from?.userId)
+      const p = m?.from?.user
+      if (!Number.isFinite(uid) || uid <= 0) continue
+      if (!p || typeof p !== 'object') continue
+      cacheUserFromPayload(uid, p)
+    }
+  }, [cacheUserFromPayload, messages])
 
   const loadConversations = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     // Prevent overlapping refreshes (causes flicker + "loading" loop feeling).
@@ -91,7 +224,19 @@ export const StaffChatPage = () => {
       const body = await staffApi.listChatConversations({ mineOnly: false, limit: 50 })
       const payload = unwrapApiData(body)
       const { items } = normalizeList(payload, ['items', 'rows', 'data'])
-      setConvList(Array.isArray(items) ? items : [])
+      const list = Array.isArray(items) ? items : []
+      setConvList(list)
+
+      // Prefer participant payload names/emails first (works even when `/users/:id` is blocked on prod).
+      for (const conv of list) {
+        const parts = Array.isArray(conv?.participants) ? conv.participants : []
+        for (const p of parts) {
+          const uid = pickParticipantUserId(p)
+          if (!Number.isFinite(uid) || uid <= 0) continue
+          cacheUserFromPayload(uid, pickParticipantProfile(p))
+        }
+      }
+
       didLoadOnceRef.current = true
     } catch {
       // Only wipe list on the first load; later failures shouldn't blank the UI.
@@ -100,7 +245,7 @@ export const StaffChatPage = () => {
       if (!silent) setConvLoading(false)
       convInFlightRef.current = false
     }
-  }, [])
+  }, [cacheUserFromPayload])
 
   useEffect(() => {
     let cancelled = false
@@ -112,45 +257,52 @@ export const StaffChatPage = () => {
       .then((body) => {
         if (cancelled) return
         const payload = unwrapApiData(body)
-        const p = payload?.user ?? payload?.profile ?? payload
-        const plain = p?.dataValues ?? p
-        const name = (
-          plain?.name ??
-          plain?.fullName ??
-          plain?.username ??
-          plain?.userName ??
-          plain?.user_name ??
-          plain?.displayName ??
-          ''
-        )
-          .toString()
-          .trim()
-        const email = (plain?.email ?? plain?.mail ?? plain?.userEmail ?? '').toString().trim()
-        const roleRaw = plain?.roleID ?? plain?.roleId ?? plain?.role ?? null
-        const roleId = roleRaw == null || roleRaw === '' ? null : Number(roleRaw)
-        setUserCache((prev) => ({
-          ...prev,
-          [String(uid)]: {
-            name: name || prev?.[String(uid)]?.name || '',
-            email: email || prev?.[String(uid)]?.email || '',
-            roleId: Number.isFinite(roleId) ? roleId : prev?.[String(uid)]?.roleId ?? null,
-            ts: Date.now(),
-          },
-        }))
+        cacheUserFromPayload(uid, payload)
       })
       .catch(() => {})
 
     return () => {
       cancelled = true
     }
-  }, [selectedUserId])
+  }, [cacheUserFromPayload, selectedUserId])
+
+  useEffect(() => {
+    // Prefetch peer profiles so the sidebar shows names without requiring a click.
+    // Backend conversations may omit participant names → fallback label becomes "User".
+    const peers = new Set<number>()
+    for (const conv of Array.isArray(convList) ? convList : []) {
+      const peerId = peerUserIdFromConversation(conv, myUserId)
+      if (peerId != null) peers.add(Number(peerId))
+    }
+    const ids = Array.from(peers).filter((id) => Number.isFinite(id) && id > 0)
+    const missing = ids.filter((id) => !userCache?.[String(id)]?.name && !userFetchInFlightRef.current.has(id))
+    if (missing.length === 0) return
+
+    let cancelled = false
+    const run = async () => {
+      // Small concurrency limit to avoid spamming backend.
+      const CONCURRENCY = 4
+      let i = 0
+      const workers = new Array(CONCURRENCY).fill(0).map(async () => {
+        while (!cancelled && i < missing.length) {
+          const uid = missing[i++]
+          await ensureUserCached(uid)
+        }
+      })
+      await Promise.allSettled(workers)
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [convList, ensureUserCached, myUserId, userCache])
 
   useEffect(() => {
     let mounted = true
     // Initial load
     loadConversations({ silent: false })
 
-    // Khi user bên customer đổi tên, danh sách conversations cần fetch lại để lấy `participants.name` mới.
+    // When a customer updates their name, refresh the conversation list to get the new `participants.name`.
     const refreshIfVisible = () => {
       if (!mounted) return
       if (document.visibilityState !== 'visible') return
@@ -210,7 +362,7 @@ export const StaffChatPage = () => {
   }
 
   const convRows = useMemo(() => {
-    // Normalize: backend đôi khi trả nhiều conversation cho cùng 1 peer → UI bị "chọn 2".
+    // Normalize: backend may return multiple conversations for the same peer → UI can look duplicated.
     const byPeer = new Map()
     for (const conv of Array.isArray(convList) ? convList : []) {
       const peerId = peerUserIdFromConversation(conv, myUserId)
@@ -246,7 +398,7 @@ export const StaffChatPage = () => {
         String(x.preview ?? '').toLowerCase().includes(q)
       )
     })
-  }, [convList, myUserId, query, userCache])
+  }, [convList, myUserId, query, t, userCache])
 
   const selectedConvLabel = useMemo(() => {
     if (!selectedUserId) return null

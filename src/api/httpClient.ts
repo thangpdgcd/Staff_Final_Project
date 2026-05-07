@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getApiBaseUrl } from '@/config/server'
+import { getApiBaseUrl } from '@/api/config/server'
 
 export const httpClient = axios.create({
   baseURL: getApiBaseUrl(),
@@ -9,6 +9,9 @@ export const httpClient = axios.create({
 })
 
 const STORAGE_KEY = 'staff_auth'
+
+let isRefreshing = false
+let refreshQueue: Array<(token: string | null) => void> = []
 
 type StoredSession = { accessToken?: string | null; user?: unknown } | null
 
@@ -53,8 +56,6 @@ httpClient.interceptors.request.use((config) => {
   return config
 })
 
-let isRefreshing = false
-let refreshQueue: Array<(token: string | null) => void> = []
 
 const subscribeRefresh = (cb: (token: string | null) => void) => {
   refreshQueue.push(cb)

@@ -1,6 +1,10 @@
 /**
- * Vercel serverless: forwards GET query to MyMemory so the SPA calls same-origin `/api/staff-app-translate-proxy`,
- * bypassing extensions that block `api.mymemory.translated.net`.
+ * NOTE:
+ * This is the former Vercel serverless proxy (`/api/staff-app-translate-proxy`).
+ * It was moved under `src/translates/` per project structure cleanup.
+ *
+ * If you deploy on Vercel and still want same-origin proxying, this file must live in
+ * the platform's serverless functions directory (commonly `api/` at repo root).
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -9,7 +13,8 @@ export default async function handler(req, res) {
     res.end('Method Not Allowed')
     return
   }
-  const qs = typeof req.url === 'string' && req.url.includes('?') ? req.url.slice(req.url.indexOf('?') + 1) : ''
+  const qs =
+    typeof req.url === 'string' && req.url.includes('?') ? req.url.slice(req.url.indexOf('?') + 1) : ''
   if (!qs) {
     res.statusCode = 400
     res.setHeader('Content-Type', 'application/json')
@@ -24,3 +29,4 @@ export default async function handler(req, res) {
   if (ct) res.setHeader('Content-Type', ct)
   res.end(text)
 }
+

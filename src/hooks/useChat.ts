@@ -64,6 +64,12 @@ const normalizeConversationEvent = (evt, myUserId, myRole, activeConversationId,
   const senderRoleId =
     plain.senderRoleId ??
     (plain.sender && typeof plain.sender === 'object' ? plain.sender.roleID ?? plain.sender.roleId : null)
+  const senderProfile =
+    plain.sender && typeof plain.sender === 'object'
+      ? plain.sender
+      : plain.user && typeof plain.user === 'object'
+        ? plain.user
+        : null
 
   const text = plain.text ?? plain.content ?? ''
   const me = myUserId != null && Number(senderUserId) === Number(myUserId)
@@ -77,7 +83,7 @@ const normalizeConversationEvent = (evt, myUserId, myRole, activeConversationId,
       : Date.now()
 
   return {
-    from: { userId: senderUserId, role },
+    from: { userId: senderUserId, role, ...(senderProfile ? { user: senderProfile } : {}) },
     message: {
       type: 'text',
       content: String(text),
@@ -109,6 +115,12 @@ const mapApiMessageRow = (row, myUserId, myRole, convId, peerIncomingRole = 'use
   const senderRoleId =
     plain.senderRoleId ??
     (plain.sender && typeof plain.sender === 'object' ? plain.sender.roleID ?? plain.sender.roleId : null)
+  const senderProfile =
+    plain.sender && typeof plain.sender === 'object'
+      ? plain.sender
+      : plain.user && typeof plain.user === 'object'
+        ? plain.user
+        : null
   const peerRole = roleFromSenderMeta(senderRoleId, peerIncomingRole)
   const ts =
     plain.createdAt != null
@@ -117,7 +129,7 @@ const mapApiMessageRow = (row, myUserId, myRole, convId, peerIncomingRole = 'use
         : new Date(plain.createdAt).getTime()
       : Date.now()
   return {
-    from: { userId: senderUserId, role: me ? (myRole ?? 'staff') : peerRole },
+    from: { userId: senderUserId, role: me ? (myRole ?? 'staff') : peerRole, ...(senderProfile ? { user: senderProfile } : {}) },
     message: {
       type: 'text',
       content: String(text),
