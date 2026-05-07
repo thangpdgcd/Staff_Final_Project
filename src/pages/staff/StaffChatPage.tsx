@@ -130,6 +130,18 @@ export const StaffChatPage = () => {
     scrollToBottom()
   }, [messages, isTyping])
 
+  useEffect(() => {
+    // When messages arrive via socket/API, prefer embedded sender profile data to populate labels.
+    // This makes names render even if `/users/:id` is blocked on production (CORS/401).
+    for (const m of Array.isArray(messages) ? messages : []) {
+      const uid = Number(m?.from?.userId)
+      const p = m?.from?.user
+      if (!Number.isFinite(uid) || uid <= 0) continue
+      if (!p || typeof p !== 'object') continue
+      cacheUserFromPayload(uid, p)
+    }
+  }, [cacheUserFromPayload, messages])
+
   const loadConversations = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     // Prevent overlapping refreshes (causes flicker + "loading" loop feeling).
     if (convInFlightRef.current) return
@@ -139,7 +151,20 @@ export const StaffChatPage = () => {
       const body = await staffApi.listChatConversations({ mineOnly: false, limit: 50 })
       const payload = unwrapApiData(body)
       const { items } = normalizeList(payload, ['items', 'rows', 'data'])
-      setConvList(Array.isArray(items) ? items : [])
+      const list = Array.isArray(items) ? items : []
+      setConvList(list)
+
+      // Prefer participant payload names/emails first (works even when `/users/:id` is blocked on prod).
+      for (const conv of list) {
+        const parts = Array.isArray(conv?.participants) ? conv.participants : []
+        for (const p of parts) {
+          const uidRaw = p?.userId ?? p?.id ?? p?.user_id ?? null
+          const uid = uidRaw == null ? NaN : Number(uidRaw)
+          if (!Number.isFinite(uid) || uid <= 0) continue
+          cacheUserFromPayload(uid, p)
+        }
+      }
+
       didLoadOnceRef.current = true
     } catch {
       // Only wipe list on the first load; later failures shouldn't blank the UI.
@@ -148,7 +173,7 @@ export const StaffChatPage = () => {
       if (!silent) setConvLoading(false)
       convInFlightRef.current = false
     }
-  }, [])
+  }, [cacheUserFromPayload])
 
   useEffect(() => {
     let cancelled = false
@@ -301,7 +326,7 @@ export const StaffChatPage = () => {
         String(x.preview ?? '').toLowerCase().includes(q)
       )
     })
-  }, [convList, myUserId, query, userCache])
+  }, [convList, myUserId, query, t, userCache])
 
   const selectedConvLabel = useMemo(() => {
     if (!selectedUserId) return null

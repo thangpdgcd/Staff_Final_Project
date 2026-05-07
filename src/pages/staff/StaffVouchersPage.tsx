@@ -308,9 +308,7 @@ export const StaffVouchersPage = () => {
         <CardContent className="space-y-4">
           <div className="rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-4">
             <div className="font-black tracking-tight">{t('staff.vouchersPage.sendCardTitle')}</div>
-            <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              {t('staff.vouchersPage.sendCardHint')}
-            </div>
+          
             <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <Button type="button" onClick={openCreate} className="sm:w-auto w-full">
                 <Plus size={16} />
@@ -537,7 +535,7 @@ export const StaffVouchersPage = () => {
         open={createOpen}
         onClose={() => (busy ? null : setCreateOpen(false))}
         title={t('staff.vouchersPage.createTitle')}
-        description={t('staff.vouchersPage.createDesc')}
+       
       >
         <div className="space-y-4">
           <div>
