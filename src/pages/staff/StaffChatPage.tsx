@@ -8,19 +8,60 @@ import { useAuthStore } from '@/store/authStore'
 import { staffApi } from '@/api/staffApi'
 import { unwrapApiData, normalizeList } from '@/utils/apiResponse'
 
+const pickParticipantUserId = (p: any): number | null => {
+  if (!p || typeof p !== 'object') return null
+  const plain = p?.dataValues ?? p
+  const idRaw =
+    plain?.userId ??
+    plain?.user_ID ??
+    plain?.user_id ??
+    plain?.id ??
+    plain?.User?.id ??
+    plain?.User?.userId ??
+    plain?.User?.user_ID ??
+    plain?.user?.id ??
+    plain?.user?.userId ??
+    plain?.user?.user_ID ??
+    null
+  if (idRaw == null || idRaw === '') return null
+  const n = Number(idRaw)
+  return Number.isFinite(n) ? n : null
+}
+
+const pickParticipantProfile = (p: any): any => {
+  const plain = p?.dataValues ?? p
+  return (
+    plain?.user ??
+    plain?.User ??
+    plain?.profile ??
+    plain?.customer ??
+    plain?.sender ??
+    plain ??
+    null
+  )
+}
+
 const peerUserIdFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
-  return peer?.userId != null ? Number(peer.userId) : null
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
+  const peerId = peer ? pickParticipantUserId(peer) : null
+  return peerId != null ? Number(peerId) : null
 }
 
 const peerLabelFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
+  const profile = pickParticipantProfile(peer)
+  const plain = profile?.dataValues ?? profile
   const raw =
     plain.name ??
     plain.fullName ??
@@ -38,9 +79,13 @@ const peerLabelFromConversation = (conv, staffId) => {
 const peerEmailFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
+  const profile = pickParticipantProfile(peer)
+  const plain = profile?.dataValues ?? profile
   const raw = plain.email ?? plain.mail ?? plain.userEmail ?? null
   const email = raw != null ? String(raw).trim() : ''
   return email || null
@@ -49,9 +94,13 @@ const peerEmailFromConversation = (conv, staffId) => {
 const peerRoleIdFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
-  const peer = parts.find((p) => Number(p.userId) !== Number(staffId))
+  const peer = parts.find((p) => {
+    const pid = pickParticipantUserId(p)
+    return pid != null && Number(pid) !== Number(staffId)
+  })
   if (!peer) return null
-  const plain = peer?.dataValues ?? peer
+  const profile = pickParticipantProfile(peer)
+  const plain = profile?.dataValues ?? profile
   const raw = plain.roleID ?? plain.roleId ?? plain.role ?? null
   if (raw == null || raw === '') return null
   const n = Number(raw)
@@ -76,7 +125,15 @@ export const StaffChatPage = () => {
   const [voucherCode, setVoucherCode] = useState('')
 
   const cacheUserFromPayload = useCallback((uid: number, payload: any) => {
-    const p = payload?.user ?? payload?.profile ?? payload
+    const root = payload?.dataValues ?? payload
+    const p =
+      root?.user ??
+      root?.User ??
+      root?.profile ??
+      root?.customer ??
+      root?.sender ??
+      root?.from ??
+      root
     const plain = p?.dataValues ?? p
     const name = (
       plain?.name ??
@@ -158,10 +215,9 @@ export const StaffChatPage = () => {
       for (const conv of list) {
         const parts = Array.isArray(conv?.participants) ? conv.participants : []
         for (const p of parts) {
-          const uidRaw = p?.userId ?? p?.id ?? p?.user_id ?? null
-          const uid = uidRaw == null ? NaN : Number(uidRaw)
+          const uid = pickParticipantUserId(p)
           if (!Number.isFinite(uid) || uid <= 0) continue
-          cacheUserFromPayload(uid, p)
+          cacheUserFromPayload(uid, pickParticipantProfile(p))
         }
       }
 
