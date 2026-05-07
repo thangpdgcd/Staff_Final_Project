@@ -11,6 +11,9 @@ import { Spinner } from '@/components/ui/Spinner'
 import { toast } from '@/store/toastStore'
 import { translateFieldTowardUiLang } from '@/utils/translateViEn'
 
+const selectFieldClass =
+  'mt-2 h-11 w-full rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 text-[15px] text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500 disabled:opacity-60'
+
 const unwrapUsersList = (res: unknown): unknown[] => {
   const payload = res as Record<string, unknown> | unknown[] | null | undefined
   if (Array.isArray(payload)) return payload
@@ -133,21 +136,27 @@ export const StaffEmailPage = () => {
   }, [i18n, getValues, setValue, t])
 
   useEffect(() => {
+    let cancelled = false
     const run = async () => {
       try {
         setLoadingUsers(true)
         const res = await staffApi.listCustomersWithEmail()
         const items = unwrapUsersList(res) as CustomerRow[]
-        setUsers(items)
+        if (!cancelled) setUsers(items)
       } catch (e: unknown) {
-        setUsers([])
+        if (!cancelled) setUsers([])
         const apiMsg = String((e as any)?.response?.data?.message ?? '').trim()
-        toast.error(apiMsg ? `${t('staff.emailPage.loadRecipientsFailed')}: ${apiMsg}` : t('staff.emailPage.loadRecipientsFailed'))
+        toast.error(
+          apiMsg ? `${t('staff.emailPage.loadRecipientsFailed')}: ${apiMsg}` : t('staff.emailPage.loadRecipientsFailed'),
+        )
       } finally {
-        setLoadingUsers(false)
+        if (!cancelled) setLoadingUsers(false)
       }
     }
     void run()
+    return () => {
+      cancelled = true
+    }
   }, [t])
 
   const customerOptions = useMemo(() => {
@@ -189,19 +198,23 @@ export const StaffEmailPage = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="max-w-3xl">
+      <Card>
         <CardHeader>
           <CardTitle>{t('staff.email')}</CardTitle>
           <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('staff.emailPage.subtitle')}</div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-4 text-sm text-zinc-600 dark:text-zinc-300">
+            <span className="font-black tracking-tight">{t('staff.emailPage.recipientCustomer')}</span>
+            <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('staff.emailPage.recipientHint')}</div>
+          </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{t('staff.emailPage.recipientCustomer')}</label>
               <select
                 {...register('toUserId')}
                 aria-label={t('staff.emailPage.recipientCustomer')}
-                className="mt-2 w-full rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-[15px] text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                className={selectFieldClass}
                 disabled={loadingUsers || translatingFields}
               >
                 <option value="">{loadingUsers ? t('common.loading') : t('staff.emailPage.recipientPlaceholder')}</option>
@@ -211,7 +224,6 @@ export const StaffEmailPage = () => {
                   </option>
                 ))}
               </select>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('staff.emailPage.recipientHint')}</p>
               {!loadingUsers && customerOptions.length === 0 ? (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{t('staff.emailPage.noRecipients')}</p>
               ) : null}
@@ -247,27 +259,23 @@ export const StaffEmailPage = () => {
                 className="mt-2 min-h-[156px] w-full rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-[15px] text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-60"
                 placeholder={t('staff.emailPage.contentPlaceholder')}
               />
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('staff.emailPage.contentBilingualHint')}</p>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('staff.emailPage.uiVersusTypingHint')}</p>
+              
+              
               {errors.messageBody ? <div className="mt-2 text-xs text-red-500">{t('common.required')}</div> : null}
             </div>
 
-            <div
-              className="rounded-2xl border border-zinc-200/60 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/40 px-4 py-3 text-xs text-zinc-600 dark:text-zinc-300"
-              lang={i18n.language}
-            >
-              <span className="font-bold">{t('staff.emailPage.contentLanguageLabel')}: </span>
-              {contentLocalePreview === 'vi'
-                ? t('staff.emailPage.localeVi')
-                : contentLocalePreview === 'mixed'
-                  ? t('staff.emailPage.localeMixed')
-                  : t('staff.emailPage.localeEn')}
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <Button type="submit" disabled={isSubmitting || translatingFields} className="w-full sm:w-auto">
+                {isSubmitting || translatingFields ? (
+                  <Spinner size="sm" className="border-white/40 border-t-white" />
+                ) : null}
+                {translatingFields
+                  ? t('staff.emailPage.translating')
+                  : isSubmitting
+                    ? t('staff.emailPage.sending')
+                    : t('staff.emailPage.send')}
+              </Button>
             </div>
-
-            <Button type="submit" disabled={isSubmitting || translatingFields} className="w-full sm:w-auto">
-              {(isSubmitting || translatingFields) ? <Spinner size="sm" className="border-white/40 border-t-white" /> : null}
-              {translatingFields ? t('staff.emailPage.translating') : isSubmitting ? t('staff.emailPage.sending') : t('staff.emailPage.send')}
-            </Button>
           </form>
         </CardContent>
       </Card>
