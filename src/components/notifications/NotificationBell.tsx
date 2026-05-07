@@ -37,11 +37,11 @@ export const NotificationBell = () => {
         whileTap={{ scale: 0.96 }}
         onClick={() => setDropdownOpen(!dropdownOpen)}
         aria-label={t('notifications.ariaOpen')}
-        className="relative rounded-xl border border-zinc-200/70 dark:border-zinc-800 p-2 text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/40 transition-colors"
+        className="relative cursor-pointer rounded-xl border border-zinc-200/70 dark:border-zinc-800 p-2 text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/40 transition-colors"
       >
         <Bell size={18} />
         {unreadCount > 0 ? (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black grid place-items-center shadow-sm">
+          <span className="absolute -top-1.5 -right-1.5 cursor-pointer min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black grid place-items-center shadow-sm">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}
