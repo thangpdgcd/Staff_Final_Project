@@ -41,6 +41,43 @@ const pickParticipantProfile = (p: any): any => {
   )
 }
 
+const pickDisplayName = (plain: any): string => {
+  if (!plain || typeof plain !== 'object') return ''
+  const p = plain?.dataValues ?? plain
+  const first =
+    p?.firstName ??
+    p?.first_name ??
+    p?.firstname ??
+    p?.given_name ??
+    ''
+  const last =
+    p?.lastName ??
+    p?.last_name ??
+    p?.lastname ??
+    p?.family_name ??
+    ''
+  const joined = `${String(first ?? '').trim()} ${String(last ?? '').trim()}`.trim()
+  const raw =
+    p?.name ??
+    p?.fullName ??
+    p?.full_name ??
+    p?.fullname ??
+    p?.username ??
+    p?.userName ??
+    p?.user_name ??
+    p?.displayName ??
+    (joined || '') ??
+    ''
+  return String(raw ?? '').trim()
+}
+
+const pickEmail = (plain: any): string => {
+  if (!plain || typeof plain !== 'object') return ''
+  const p = plain?.dataValues ?? plain
+  const raw = p?.email ?? p?.mail ?? p?.userEmail ?? p?.user_email ?? ''
+  return String(raw ?? '').trim()
+}
+
 const peerUserIdFromConversation = (conv, staffId) => {
   if (staffId == null) return null
   const parts = Array.isArray(conv?.participants) ? conv.participants : []
@@ -61,19 +98,10 @@ const peerLabelFromConversation = (conv, staffId) => {
   })
   if (!peer) return null
   const profile = pickParticipantProfile(peer)
-  const plain = profile?.dataValues ?? profile
-  const raw =
-    plain.name ??
-    plain.fullName ??
-    plain.username ??
-    plain.userName ??
-    plain.user_name ??
-    plain.displayName ??
-    plain.email ??
-    plain.phone ??
-    null
-  const label = raw != null ? String(raw).trim() : ''
-  return label || null
+  const label = pickDisplayName(profile)
+  if (label) return label
+  const email = pickEmail(profile)
+  return email || null
 }
 
 const peerEmailFromConversation = (conv, staffId) => {
@@ -85,9 +113,7 @@ const peerEmailFromConversation = (conv, staffId) => {
   })
   if (!peer) return null
   const profile = pickParticipantProfile(peer)
-  const plain = profile?.dataValues ?? profile
-  const raw = plain.email ?? plain.mail ?? plain.userEmail ?? null
-  const email = raw != null ? String(raw).trim() : ''
+  const email = pickEmail(profile)
   return email || null
 }
 
@@ -135,18 +161,8 @@ export const StaffChatPage = () => {
       root?.from ??
       root
     const plain = p?.dataValues ?? p
-    const name = (
-      plain?.name ??
-      plain?.fullName ??
-      plain?.username ??
-      plain?.userName ??
-      plain?.user_name ??
-      plain?.displayName ??
-      ''
-    )
-      .toString()
-      .trim()
-    const email = (plain?.email ?? plain?.mail ?? plain?.userEmail ?? '').toString().trim()
+    const name = pickDisplayName(plain)
+    const email = pickEmail(plain)
     const roleRaw = plain?.roleID ?? plain?.roleId ?? plain?.role ?? null
     const roleId = roleRaw == null || roleRaw === '' ? null : Number(roleRaw)
 
